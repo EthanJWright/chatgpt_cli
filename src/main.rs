@@ -28,7 +28,7 @@ async fn main() -> chatgpt::Result<()> {
 
     // Join the collected arguments into a single sentence
     // only if there are more than 1 arguments
-    let message = if args_vec.len() > 1 {
+    let message = if args_vec.len() > 0 {
         Some(args_vec.join(" "))
     } else {
         None
@@ -71,7 +71,7 @@ async fn save_conversation(client: &ChatGPT) -> chatgpt::Result<()> {
 }
 
 async fn load_conversation(client: &ChatGPT) -> chatgpt::Result<()> {
-    print!("What should I load it from?");
+    println!("What should I load it from?");
     stdout().flush()?;
     print_saved_conversations();
     stdout().flush()?;
@@ -127,7 +127,7 @@ fn print_saved_conversations() {
     if let Ok(conversation) = conversation {
         if is_saved_conversation(&conversation) {
             let print_name = conversation.file_name().into_string().unwrap();
-            println!("{}", print_name.replace("conversation", "").replace(".json", ""));
+            println!("{}", print_name.replace("conversation_", "").replace(".json", ""));
         }
     }
 }
@@ -135,6 +135,6 @@ fn print_saved_conversations() {
 
 fn is_saved_conversation(conversation: &std::fs::DirEntry) -> bool {
     let file_name = conversation.file_name().into_string().unwrap();
-    file_name.starts_with("conversation") && file_name.ends_with(".json")
+    file_name.starts_with("conversation_") && file_name.ends_with(".json")
 }
 
