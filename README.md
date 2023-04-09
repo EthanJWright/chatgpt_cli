@@ -43,6 +43,10 @@ To run the ChatGPT CLI, execute the following command, replacing `your_api_key` 
 
     ./target/release/chatgpt_cli your_api_key
 
+You can also pass your prompt directly after the api key
+
+    ./target/release/chatgpt_cli your_api_key write a haiku
+
 You can interact with ChatGPT by typing messages directly in the CLI. The following commands are also available:
 
 *   `flush`: Clears the current conversation.
