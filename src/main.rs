@@ -13,11 +13,8 @@ fn conversation_file_path(name: &str) -> PathBuf {
 
 #[tokio::main]
 async fn main() -> chatgpt::Result<()> {
-
     // Get the API key from the command line
-    let key = args().nth(1).unwrap();
-
-
+    let key = std::env::args().nth(1).expect("API key not provided");
     let client = ChatGPT::new(&key)?;
 
     std::fs::create_dir_all(CONVERSATIONS_DIR)?;
