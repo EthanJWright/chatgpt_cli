@@ -21,16 +21,19 @@ Installation
 
 1.  Clone the repository:
 
+    ```
     git clone https://github.com/your_username/chatgpt_cli.git
-
+    ```
 3.  Change to the project directory:
 
+    ```
     cd chatgpt_cli
-
+    ```
 5.  Compile the project:
 
+    ```
     cargo build --release
-
+    ```
 7.  (Optional) Add the compiled binary to your system's PATH for easier access.
 
 Usage
