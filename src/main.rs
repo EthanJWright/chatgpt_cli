@@ -13,15 +13,35 @@ fn conversation_file_path(name: &str) -> PathBuf {
 
 #[tokio::main]
 async fn main() -> chatgpt::Result<()> {
+
+    // Get the API key from the command line
     let key = args().nth(1).unwrap();
+
+
     let client = ChatGPT::new(&key)?;
 
     std::fs::create_dir_all(CONVERSATIONS_DIR)?;
 
-    print!("Enter your command: ");
-    stdout().flush()?;
-    let mut input = String::new();
-    stdin().read_line(&mut input)?;
+    // Skip the first argument (the program name) and collect the rest into a Vec<String>
+    let args_vec: Vec<String> = args().skip(2).collect();
+
+
+    // Join the collected arguments into a single sentence
+    // only if there are more than 1 arguments
+    let message = if args_vec.len() > 1 {
+        Some(args_vec.join(" "))
+    } else {
+        None
+    };
+
+    let input: String = if let Some(message) = message {
+        message
+    } else {
+        println!("Enter your command: ");
+        let mut input = String::new();
+        stdin().read_line(&mut input)?;
+        input
+    };
 
     match input.trim() {
         "flush" => flush_conversation(),
@@ -95,7 +115,7 @@ async fn process_message(client: &ChatGPT, message: &str) -> chatgpt::Result<()>
     };
 
     let response: CompletionResponse = conversation.send_message(message.to_string()).await?;
-    println!("Response: {}", response.message().content);
+    println!("{}", response.message().content);
     conversation.save_history_json(CONVERSATION).await?;
 
     Ok(())
