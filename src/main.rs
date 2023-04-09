@@ -52,6 +52,11 @@ async fn main() -> chatgpt::Result<()> {
         "save" => save_conversation(&client, &args_vec).await,
         "load" => load_conversation(&client, &args_vec).await,
         "clear" => clear_conversations(),
+        "list" => {
+            println!("Saved conversations:");
+            print_saved_conversations();
+            Ok(())
+        }
         _ => process_message(&client, input.trim()).await,
     }
 }
