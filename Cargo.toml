@@ -1,0 +1,12 @@
+[package]
+name = "chatgpt_cli"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+chatgpt_rs = "1.1.0"
+tokio = { version = "1", features = ["full"] }
+
+[[bin]]
+name = "chatgpt_cli"
+path = "src/main.rs"
