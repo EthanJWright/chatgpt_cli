@@ -15,7 +15,16 @@ fn conversation_file_path(name: &str) -> PathBuf {
 async fn main() -> chatgpt::Result<()> {
     // Get the API key from the command line
     let key = std::env::args().nth(1).expect("API key not provided");
-    let client = ChatGPT::new(&key)?;
+    let config = ModelConfigurationBuilder::default()
+        .engine(ChatGPTEngine::Gpt35Turbo)
+        .build()
+        .unwrap();
+
+    let client = match ChatGPT::new_with_config(&key, config) {
+        Ok(val) => val,
+        Err(err) => panic!("Failed to create ChatGPT client: {}", err),
+    };
+
 
     std::fs::create_dir_all(CONVERSATIONS_DIR)?;
 
