@@ -19,18 +19,17 @@ async fn main() -> chatgpt::Result<()> {
 
     std::fs::create_dir_all(CONVERSATIONS_DIR)?;
 
-    // Skip the first argument (the program name) and collect the rest into a Vec<String>
+    // Skip the first two arguments (the executable and the API key)
     let args_vec: Vec<String> = args().skip(2).collect();
 
-
-    // Join the collected arguments into a single sentence
-    // only if there are more than 1 arguments
+    // If there are any arguments, use them as the message
     let message = if args_vec.len() > 0 {
         Some(args_vec.join(" "))
     } else {
         None
     };
 
+    // If there is no message, prompt the user for one
     let input: String = if let Some(message) = message {
         message
     } else {
@@ -40,8 +39,9 @@ async fn main() -> chatgpt::Result<()> {
         input
     };
 
-    // remove the first command from the arguments
     let first_command = input.trim().split_whitespace().next().unwrap();
+    // remove the potential command from the arguments
+    // in process_message we will just use the raw input
     let args_vec: Vec<String> = args_vec.into_iter().skip(1).collect();
 
     match first_command.trim() {
