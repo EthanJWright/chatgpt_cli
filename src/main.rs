@@ -43,21 +43,30 @@ async fn main() -> chatgpt::Result<()> {
         input
     };
 
-    match input.trim() {
+    // remove the first command from the arguments
+    let first_command = input.trim().split_whitespace().next().unwrap();
+    let args_vec: Vec<String> = args_vec.into_iter().skip(1).collect();
+
+    match first_command.trim() {
         "flush" => flush_conversation(),
-        "save" => save_conversation(&client).await,
-        "load" => load_conversation(&client).await,
+        "save" => save_conversation(&client, &args_vec).await,
+        "load" => load_conversation(&client, &args_vec).await,
         "clear" => clear_conversations(),
-        message => process_message(&client, message).await,
+        _ => process_message(&client, input.trim()).await,
     }
 }
 
-async fn save_conversation(client: &ChatGPT) -> chatgpt::Result<()> {
-    print!("What should I save it as? ");
-    stdout().flush()?;
-    let mut input = String::new();
-    stdin().read_line(&mut input)?;
-    let file_name = conversation_file_path(input.trim());
+async fn save_conversation(client: &ChatGPT, args: &[String]) -> chatgpt::Result<()> {
+    let file_name = if let Some(name) = args.get(0) {
+        println!("Saving conversation as {}", name);
+        conversation_file_path(name)
+    } else {
+        println!("What should I save it as?");
+        stdout().flush()?;
+        let mut input = String::new();
+        stdin().read_line(&mut input)?;
+        conversation_file_path(input.trim())
+    };
 
     client
         .restore_conversation_json(CONVERSATION)
@@ -70,14 +79,19 @@ async fn save_conversation(client: &ChatGPT) -> chatgpt::Result<()> {
     Ok(())
 }
 
-async fn load_conversation(client: &ChatGPT) -> chatgpt::Result<()> {
-    println!("What should I load it from?");
-    stdout().flush()?;
-    print_saved_conversations();
-    stdout().flush()?;
-    let mut input = String::new();
-    stdin().read_line(&mut input)?;
-    let file_name = conversation_file_path(input.trim());
+async fn load_conversation(client: &ChatGPT, args: &[String]) -> chatgpt::Result<()> {
+    let file_name = if let Some(name) = args.get(0) {
+        println!("Loading conversation from {}", name);
+        conversation_file_path(name)
+    } else {
+        println!("What should I load it from?");
+        stdout().flush()?;
+        print_saved_conversations();
+        stdout().flush()?;
+        let mut input = String::new();
+        stdin().read_line(&mut input)?;
+        conversation_file_path(input.trim())
+    };
 
     let conversation: Conversation = client.restore_conversation_json(file_name).await?;
     conversation.save_history_json(CONVERSATION).await?;
