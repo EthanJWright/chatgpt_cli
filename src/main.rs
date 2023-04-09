@@ -2,13 +2,21 @@ use chatgpt::prelude::*;
 use chatgpt::types::CompletionResponse;
 use std::env::args;
 use std::io::{stdin, stdout, Write};
+use std::path::PathBuf;
 
-const CONVERSATION: &str = "conversation.json";
+const CONVERSATIONS_DIR: &str = "conversations";
+const CONVERSATION: &str = "conversations/conversation.json";
+
+fn conversation_file_path(name: &str) -> PathBuf {
+    PathBuf::from(CONVERSATIONS_DIR).join(format!("conversation_{}.json", name))
+}
 
 #[tokio::main]
 async fn main() -> chatgpt::Result<()> {
     let key = args().nth(1).unwrap();
     let client = ChatGPT::new(&key)?;
+
+    std::fs::create_dir_all(CONVERSATIONS_DIR)?;
 
     print!("Enter your command: ");
     stdout().flush()?;
@@ -25,11 +33,11 @@ async fn main() -> chatgpt::Result<()> {
 }
 
 async fn save_conversation(client: &ChatGPT) -> chatgpt::Result<()> {
-    print!("What should I save it as?: ");
+    print!("What should I save it as? ");
     stdout().flush()?;
     let mut input = String::new();
     stdin().read_line(&mut input)?;
-    let file_name = format!("conversation{}.json", input.trim());
+    let file_name = conversation_file_path(input.trim());
 
     client
         .restore_conversation_json(CONVERSATION)
@@ -49,7 +57,7 @@ async fn load_conversation(client: &ChatGPT) -> chatgpt::Result<()> {
     stdout().flush()?;
     let mut input = String::new();
     stdin().read_line(&mut input)?;
-    let file_name = format!("conversation{}.json", input.trim());
+    let file_name = conversation_file_path(input.trim());
 
     let conversation: Conversation = client.restore_conversation_json(file_name).await?;
     conversation.save_history_json(CONVERSATION).await?;
@@ -64,7 +72,7 @@ fn flush_conversation() -> chatgpt::Result<()> {
 }
 
 fn clear_conversations() -> chatgpt::Result<()> {
-    let mut conversations = std::fs::read_dir(".")?;
+    let mut conversations = std::fs::read_dir(CONVERSATIONS_DIR)?;
 
     while let Some(conversation) = conversations.next() {
         let conversation = conversation?;
@@ -94,24 +102,19 @@ async fn process_message(client: &ChatGPT, message: &str) -> chatgpt::Result<()>
 }
 
 fn print_saved_conversations() {
-    let conversations = std::fs::read_dir(".").unwrap();
-
+    let conversations = std::fs::read_dir(CONVERSATIONS_DIR).unwrap();
     for conversation in conversations {
-        if let Ok(conversation) = conversation {
-            if is_saved_conversation(&conversation) {
-                let print_name = conversation.file_name().into_string().unwrap();
-                println!("{}", print_name.replace("conversation", "").replace(".json", ""));
-            }
+    if let Ok(conversation) = conversation {
+        if is_saved_conversation(&conversation) {
+            let print_name = conversation.file_name().into_string().unwrap();
+            println!("{}", print_name.replace("conversation", "").replace(".json", ""));
         }
     }
+}
 }
 
 fn is_saved_conversation(conversation: &std::fs::DirEntry) -> bool {
     let file_name = conversation.file_name().into_string().unwrap();
-
-    conversation.file_type().unwrap().is_file()
-        && file_name.starts_with("conversation")
-        && file_name.ends_with(".json")
+    file_name.starts_with("conversation") && file_name.ends_with(".json")
 }
-
 
