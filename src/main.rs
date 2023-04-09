@@ -113,7 +113,7 @@ fn clear_conversations() -> chatgpt::Result<()> {
 
         if is_saved_conversation(&conversation) {
             let print_name = conversation.file_name().into_string().unwrap();
-            println!("Removing - {}", print_name.replace("conversation", "").replace(".json", ""));
+            println!("Removing - {}", print_name.replace("conversation_", "").replace(".json", ""));
             std::fs::remove_file(conversation.path())?;
         }
     }
