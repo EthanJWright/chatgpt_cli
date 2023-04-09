@@ -111,6 +111,15 @@ fn flush_conversation() -> chatgpt::Result<()> {
 }
 
 fn clear_conversations() -> chatgpt::Result<()> {
+    // Add a confirmation prompt
+    println!("Are you sure you want to delete all saved conversations? (y/n)");
+    stdout().flush()?;
+    let mut input = String::new();
+    stdin().read_line(&mut input)?;
+    if input.trim() != "y" {
+        return Ok(());
+    }
+
     let mut conversations = std::fs::read_dir(CONVERSATIONS_DIR)?;
 
     while let Some(conversation) = conversations.next() {
@@ -134,6 +143,9 @@ async fn process_message(client: &ChatGPT, message: &str) -> chatgpt::Result<()>
     };
 
     let response: CompletionResponse = conversation.send_message(message.to_string()).await?;
+    // Print two new lines to separate the conversation
+    println!();
+    println!();
     println!("{}", response.message().content);
     conversation.save_history_json(CONVERSATION).await?;
 
