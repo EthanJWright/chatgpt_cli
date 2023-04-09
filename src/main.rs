@@ -1,5 +1,4 @@
 use chatgpt::prelude::*;
-use chatgpt::types::CompletionResponse;
 use std::env::args;
 use std::io::{stdin, stdout, Write};
 use std::path::PathBuf;
@@ -51,6 +50,7 @@ async fn main() -> chatgpt::Result<()> {
     match first_command.trim() {
         "flush" => flush_conversation(),
         "save" => save_conversation(&client, &args_vec).await,
+        "remove" => remove_conversation(&args_vec).await,
         "load" => load_conversation(&client, &args_vec).await,
         "clear" => clear_conversations(),
         "list" => {
@@ -87,7 +87,23 @@ async fn save_conversation(client: &ChatGPT, args: &[String]) -> chatgpt::Result
         .save_history_json(file_name)
         .await?;
 
-    std::fs::remove_file(CONVERSATION)?;
+    Ok(())
+}
+
+async fn remove_conversation(args: &[String]) -> chatgpt::Result<()> {
+    let file_name = if let Some(name) = args.get(0) {
+        println!("Removing conversation {}", name);
+        conversation_file_path(name)
+    } else {
+        println!("What should I remove?");
+        print_saved_conversations();
+        stdout().flush()?;
+        let mut input = String::new();
+        stdin().read_line(&mut input)?;
+        conversation_file_path(input.trim())
+    };
+
+    std::fs::remove_file(file_name)?;
 
     Ok(())
 }
@@ -98,7 +114,6 @@ async fn load_conversation(client: &ChatGPT, args: &[String]) -> chatgpt::Result
         conversation_file_path(name)
     } else {
         println!("What should I load it from?");
-        stdout().flush()?;
         print_saved_conversations();
         stdout().flush()?;
         let mut input = String::new();
@@ -106,7 +121,7 @@ async fn load_conversation(client: &ChatGPT, args: &[String]) -> chatgpt::Result
         conversation_file_path(input.trim())
     };
 
-    let conversation: Conversation = client.restore_conversation_json(file_name).await?;
+    let conversation = client.restore_conversation_json(file_name).await?;
     conversation.save_history_json(CONVERSATION).await?;
 
     Ok(())
@@ -114,7 +129,6 @@ async fn load_conversation(client: &ChatGPT, args: &[String]) -> chatgpt::Result
 
 fn flush_conversation() -> chatgpt::Result<()> {
     std::fs::remove_file(CONVERSATION)?;
-
     Ok(())
 }
 
@@ -128,14 +142,12 @@ fn clear_conversations() -> chatgpt::Result<()> {
         return Ok(());
     }
 
-    let mut conversations = std::fs::read_dir(CONVERSATIONS_DIR)?;
-
-    while let Some(conversation) = conversations.next() {
+    let conversations = std::fs::read_dir(CONVERSATIONS_DIR)?;
+    for conversation in conversations {
         let conversation = conversation?;
-
         if is_saved_conversation(&conversation) {
             let print_name = conversation.file_name().into_string().unwrap();
-            println!("Removing - {}", print_name.replace("conversation_", "").replace(".json", ""));
+            println!("Removing - {}", print_name.trim_start_matches("conversation_").trim_end_matches(".json"));
             std::fs::remove_file(conversation.path())?;
         }
     }
@@ -144,33 +156,35 @@ fn clear_conversations() -> chatgpt::Result<()> {
 }
 
 async fn process_message(client: &ChatGPT, message: &str) -> chatgpt::Result<()> {
-    let mut conversation: Conversation = if std::path::Path::new(CONVERSATION).exists() {
+    let mut conversation = if std::path::Path::new(CONVERSATION).exists() {
         client.restore_conversation_json(CONVERSATION).await?
     } else {
         client.new_conversation()
     };
 
-    let response: CompletionResponse = conversation.send_message(message.to_string()).await?;
+    let response = conversation.send_message(message.to_string()).await?;
+    
     // Print two new lines to separate the conversation
-    println!();
-    println!();
-    println!("{}", response.message().content);
+    println!("\n\n{}", response.message().content);
+    
     conversation.save_history_json(CONVERSATION).await?;
-
+    
     Ok(())
 }
 
 fn get_saved_conversations() -> Vec<String> {
     let conversations = std::fs::read_dir(CONVERSATIONS_DIR).unwrap();
     let mut names: Vec<String> = Vec::new();
+
     for conversation in conversations {
-    if let Ok(conversation) = conversation {
-        if is_saved_conversation(&conversation) {
-            let print_name = conversation.file_name().into_string().unwrap();
-            names.push(print_name.replace("conversation_", "").replace(".json", ""));
+        if let Ok(conversation) = conversation {
+            if is_saved_conversation(&conversation) {
+                let print_name = conversation.file_name().into_string().unwrap();
+                names.push(print_name.trim_start_matches("conversation_").trim_end_matches(".json").to_string());
+            }
         }
     }
-}
+
     names
 }
 
