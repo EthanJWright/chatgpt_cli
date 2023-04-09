@@ -52,6 +52,7 @@ You can interact with ChatGPT by typing messages directly in the CLI. The follow
 *   `flush`: Clears the current conversation.
 *   `save`: Saves the current conversation to a JSON file. You'll be prompted for a file name.
 *   `load`: Loads a saved conversation from a JSON file. You'll be prompted for a file name.
+*   `list`: List all saved conversations.
 *   `clear`: Removes all saved conversations.
 
 License
