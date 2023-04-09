@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2018"
 
 [dependencies]
-chatgpt_rs = "1.1.0"
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1.15", features = ["full"] }
+chatgpt_rs = { version = "1.1.1", features = [] }
 
 [[bin]]
 name = "chatgpt_cli"

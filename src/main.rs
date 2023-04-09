@@ -4,6 +4,7 @@ use std::env::args;
 use std::io::{stdin, stdout, Write};
 use std::path::PathBuf;
 
+
 const CONVERSATIONS_DIR: &str = "conversations";
 const CONVERSATION: &str = "conversations/conversation.json";
 
@@ -57,7 +58,14 @@ async fn main() -> chatgpt::Result<()> {
             print_saved_conversations();
             Ok(())
         }
-        _ => process_message(&client, input.trim()).await,
+        _ => {
+            let saved = get_saved_conversations();
+            if saved.contains(&input.trim().to_string()) {
+                load_conversation(&client, &[input.trim().to_string()]).await
+            } else {
+                process_message(&client, input.trim()).await
+            }
+        }
     }
 }
 
@@ -150,6 +158,20 @@ async fn process_message(client: &ChatGPT, message: &str) -> chatgpt::Result<()>
     conversation.save_history_json(CONVERSATION).await?;
 
     Ok(())
+}
+
+fn get_saved_conversations() -> Vec<String> {
+    let conversations = std::fs::read_dir(CONVERSATIONS_DIR).unwrap();
+    let mut names: Vec<String> = Vec::new();
+    for conversation in conversations {
+    if let Ok(conversation) = conversation {
+        if is_saved_conversation(&conversation) {
+            let print_name = conversation.file_name().into_string().unwrap();
+            names.push(print_name.replace("conversation_", "").replace(".json", ""));
+        }
+    }
+}
+    names
 }
 
 fn print_saved_conversations() {
