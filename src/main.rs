@@ -197,17 +197,16 @@ fn get_saved_conversations() -> Vec<String> {
 fn print_saved_conversations() {
     let conversations = std::fs::read_dir(CONVERSATIONS_DIR).unwrap();
     for conversation in conversations {
-    if let Ok(conversation) = conversation {
-        if is_saved_conversation(&conversation) {
-            let print_name = conversation.file_name().into_string().unwrap();
-            println!("{}", print_name.replace("conversation_", "").replace(".json", ""));
+        if let Ok(conversation) = conversation {
+            if is_saved_conversation(&conversation) {
+                let print_name = conversation.file_name().into_string().unwrap();
+                println!("{}", print_name.replace("conversation_", "").replace(".json", ""));
+            }
         }
     }
-}
 }
 
 fn is_saved_conversation(conversation: &std::fs::DirEntry) -> bool {
     let file_name = conversation.file_name().into_string().unwrap();
     file_name.starts_with("conversation_") && file_name.ends_with(".json")
 }
-
