@@ -4,11 +4,22 @@ use std::io::{stdin, stdout, Write};
 use std::path::PathBuf;
 
 
-const CONVERSATIONS_DIR: &str = "conversations";
 const CONVERSATION: &str = "conversations/conversation.json";
+const APP_NAME: &str = "chatgpt_cli";
 
-fn conversation_file_path(name: &str) -> PathBuf {
-    PathBuf::from(CONVERSATIONS_DIR).join(format!("conversation_{}.json", name))
+fn get_data_dir(app_name: &str) -> Option<PathBuf> {
+    let data_dir = dirs::home_dir()?.join(".config").join(app_name);
+    std::fs::create_dir_all(&data_dir).ok()?;
+    Some(data_dir)
+}
+
+fn conversations_dir() -> Option<PathBuf> {
+    return get_data_dir(APP_NAME)
+}
+
+fn conversation_file_path(name: &str) -> Option<PathBuf> {
+    let conversions_dir = conversations_dir()?;
+    Some(PathBuf::from(conversions_dir).join(format!("conversation_{}.json", name)))
 }
 
 #[tokio::main]
@@ -26,7 +37,7 @@ async fn main() -> chatgpt::Result<()> {
     };
 
 
-    std::fs::create_dir_all(CONVERSATIONS_DIR)?;
+    std::fs::create_dir_all(conversations_dir().unwrap())?;
 
     // Skip the first two arguments (the executable and the API key)
     let args_vec: Vec<String> = args().skip(2).collect();
@@ -78,13 +89,13 @@ async fn main() -> chatgpt::Result<()> {
 async fn save_conversation(client: &ChatGPT, args: &[String]) -> chatgpt::Result<()> {
     let file_name = if let Some(name) = args.get(0) {
         println!("Saving conversation as {}", name);
-        conversation_file_path(name)
+        conversation_file_path(name).unwrap()
     } else {
         println!("What should I save it as?");
         stdout().flush()?;
         let mut input = String::new();
         stdin().read_line(&mut input)?;
-        conversation_file_path(input.trim())
+        conversation_file_path(input.trim()).unwrap()
     };
 
     client
@@ -99,14 +110,14 @@ async fn save_conversation(client: &ChatGPT, args: &[String]) -> chatgpt::Result
 async fn remove_conversation(args: &[String]) -> chatgpt::Result<()> {
     let file_name = if let Some(name) = args.get(0) {
         println!("Removing conversation {}", name);
-        conversation_file_path(name)
+        conversation_file_path(name).unwrap()
     } else {
         println!("What should I remove?");
         print_saved_conversations();
         stdout().flush()?;
         let mut input = String::new();
         stdin().read_line(&mut input)?;
-        conversation_file_path(input.trim())
+        conversation_file_path(input.trim()).unwrap()
     };
 
     std::fs::remove_file(file_name)?;
@@ -117,14 +128,14 @@ async fn remove_conversation(args: &[String]) -> chatgpt::Result<()> {
 async fn load_conversation(client: &ChatGPT, args: &[String]) -> chatgpt::Result<()> {
     let file_name = if let Some(name) = args.get(0) {
         println!("Loading conversation from {}", name);
-        conversation_file_path(name)
+        conversation_file_path(name).unwrap()
     } else {
         println!("What should I load it from?");
         print_saved_conversations();
         stdout().flush()?;
         let mut input = String::new();
         stdin().read_line(&mut input)?;
-        conversation_file_path(input.trim())
+        conversation_file_path(input.trim()).unwrap()
     };
 
     let conversation = client.restore_conversation_json(file_name).await?;
@@ -148,7 +159,7 @@ fn clear_conversations() -> chatgpt::Result<()> {
         return Ok(());
     }
 
-    let conversations = std::fs::read_dir(CONVERSATIONS_DIR)?;
+    let conversations = std::fs::read_dir(conversations_dir().unwrap())?;
     for conversation in conversations {
         let conversation = conversation?;
         if is_saved_conversation(&conversation) {
@@ -179,7 +190,7 @@ async fn process_message(client: &ChatGPT, message: &str) -> chatgpt::Result<()>
 }
 
 fn get_saved_conversations() -> Vec<String> {
-    let conversations = std::fs::read_dir(CONVERSATIONS_DIR).unwrap();
+    let conversations = std::fs::read_dir(conversations_dir().unwrap()).unwrap();
     let mut names: Vec<String> = Vec::new();
 
     for conversation in conversations {
@@ -190,12 +201,11 @@ fn get_saved_conversations() -> Vec<String> {
             }
         }
     }
-
     names
 }
 
 fn print_saved_conversations() {
-    let conversations = std::fs::read_dir(CONVERSATIONS_DIR).unwrap();
+    let conversations = std::fs::read_dir(conversations_dir().unwrap()).unwrap();
     for conversation in conversations {
         if let Ok(conversation) = conversation {
             if is_saved_conversation(&conversation) {

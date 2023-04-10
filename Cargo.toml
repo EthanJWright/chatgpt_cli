@@ -6,6 +6,7 @@ edition = "2018"
 [dependencies]
 tokio = { version = "1.15", features = ["full"] }
 chatgpt_rs = { version = "1.1.1", features = [] }
+dirs = "3.0.2"
 
 [[bin]]
 name = "chatgpt_cli"
