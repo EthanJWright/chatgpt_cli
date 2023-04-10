@@ -4,7 +4,6 @@ use std::io::{stdin, stdout, Write};
 use std::path::PathBuf;
 
 
-const CONVERSATION: &str = "conversations/conversation.json";
 const APP_NAME: &str = "chatgpt_cli";
 
 fn get_data_dir(app_name: &str) -> Option<PathBuf> {
@@ -15,6 +14,10 @@ fn get_data_dir(app_name: &str) -> Option<PathBuf> {
 
 fn conversations_dir() -> Option<PathBuf> {
     return get_data_dir(APP_NAME)
+}
+
+fn main_conversation_file() -> String {
+    return conversations_dir().unwrap().to_string_lossy().to_string() + "/conversation.json";
 }
 
 fn conversation_file_path(name: &str) -> Option<PathBuf> {
@@ -99,7 +102,7 @@ async fn save_conversation(client: &ChatGPT, args: &[String]) -> chatgpt::Result
     };
 
     client
-        .restore_conversation_json(CONVERSATION)
+        .restore_conversation_json(main_conversation_file())
         .await?
         .save_history_json(file_name)
         .await?;
@@ -139,15 +142,17 @@ async fn load_conversation(client: &ChatGPT, args: &[String]) -> chatgpt::Result
     };
 
     let conversation = client.restore_conversation_json(file_name).await?;
-    conversation.save_history_json(CONVERSATION).await?;
+    conversation.save_history_json(main_conversation_file()).await?;
 
     Ok(())
 }
 
 fn flush_conversation() -> chatgpt::Result<()> {
-    std::fs::remove_file(CONVERSATION)?;
+    std::fs::remove_file(main_conversation_file())?;
     Ok(())
 }
+
+
 
 fn clear_conversations() -> chatgpt::Result<()> {
     // Add a confirmation prompt
@@ -173,8 +178,8 @@ fn clear_conversations() -> chatgpt::Result<()> {
 }
 
 async fn process_message(client: &ChatGPT, message: &str) -> chatgpt::Result<()> {
-    let mut conversation = if std::path::Path::new(CONVERSATION).exists() {
-        client.restore_conversation_json(CONVERSATION).await?
+    let mut conversation = if std::path::Path::new(&main_conversation_file()).exists() {
+        client.restore_conversation_json(main_conversation_file()).await?
     } else {
         client.new_conversation()
     };
@@ -184,7 +189,7 @@ async fn process_message(client: &ChatGPT, message: &str) -> chatgpt::Result<()>
     // Print two new lines to separate the conversation
     println!("\n\n{}", response.message().content);
     
-    conversation.save_history_json(CONVERSATION).await?;
+    conversation.save_history_json(main_conversation_file()).await?;
     
     Ok(())
 }
