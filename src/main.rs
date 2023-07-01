@@ -68,6 +68,18 @@ async fn main() -> chatgpt::Result<()> {
     let args_vec: Vec<String> = args_vec.into_iter().skip(1).collect();
 
     match first_command.trim() {
+        "help" => {
+            println!("Commands:");
+            println!("  help: print this help message");
+            println!("  flush: clear the current conversation");
+            println!("  save [name]: save the current conversation");
+            println!("  remove [name]: remove a saved conversation");
+            println!("  load [name]: load a saved conversation");
+            println!("  clear: clear all saved conversations");
+            println!("  list: list all saved conversations");
+            println!("  [message]: send a message");
+            Ok(())
+        }
         "flush" => flush_conversation(),
         "save" => save_conversation(&client, &args_vec).await,
         "remove" => remove_conversation(&args_vec).await,
