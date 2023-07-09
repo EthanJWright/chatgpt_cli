@@ -7,6 +7,8 @@ edition = "2018"
 tokio = { version = "1.15", features = ["full"] }
 chatgpt_rs = { version = "1.1.1", features = [] }
 dirs = "3.0.2"
+futures = "0.3"
+shellexpand = "1.0"
 
 [[bin]]
 name = "chatgpt_cli"
