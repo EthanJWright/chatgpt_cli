@@ -47,6 +47,7 @@ async fn handle_chunk(key: String, chunk: String, prompt: String) -> ChatGptResu
     };
     let message = format!("{}\n\n{}", prompt, chunk);
     let response: CompletionResponse = conversation.send_message(&message).await?;
+    conversation.save_history_json(file::main_conversation_file()).await?;
     Ok(response)
 }
 
