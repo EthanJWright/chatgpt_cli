@@ -3,9 +3,11 @@ use super::file;
 use std::io::{stdout, Write};
 use futures_util::StreamExt;
 
-pub async fn get_client(key: String) -> ChatGPT {
+// Publicly setable ChatGPTEngine
+
+pub async fn get_client(key: String, engine: ChatGPTEngine) -> ChatGPT {
     let config = ModelConfigurationBuilder::default()
-        .engine(ChatGPTEngine::Gpt4)
+        .engine(engine)
         .build()
         .unwrap();
 

@@ -12,15 +12,20 @@ mod file;
 
 const CHUNK_SIZE: usize = 20000;
 const CHUNK_BATCH_SIZE: usize = 5;
+const ENGINE: ChatGPTEngine = ChatGPTEngine::Gpt4;
 
 #[tokio::main]
 async fn main() -> chatgpt::Result<()> {
     // Get the API key from the command line
     let mut key = std::env::args().nth(1).expect("API key not provided");
+
+
+
     let client_key = key.clone();
-    let client = client::get_client(client_key).await;
+    let client = client::get_client(client_key, ENGINE).await;
 
     std::fs::create_dir_all(file::conversations_dir().unwrap())?;
+
 
     // Skip the first two arguments (the executable and the API key)
     let args_vec: Vec<String> = args().skip(2).collect();
@@ -31,6 +36,7 @@ async fn main() -> chatgpt::Result<()> {
     } else {
         None
     };
+
 
     // If there is no message, prompt the user for one
     let input: String = if let Some(message) = message {
@@ -76,7 +82,7 @@ async fn main() -> chatgpt::Result<()> {
         _ => {
             if input.contains("--file=") {
                 key = key.clone();
-                return message_with_file(&client, &key, &input).await;
+                return message_with_file(&client, &key, ENGINE, &input).await;
             }
 
             let saved = get_saved_conversations();
@@ -159,7 +165,7 @@ fn percent_left(current_chunk: &str, chunk_size: usize) -> usize {
     (remaining_size as f64 / chunk_size as f64 * 100.0) as usize
 }
 
-async fn message_with_file(client: &ChatGPT, key: &str, args: &String) -> chatgpt::Result<()> {
+async fn message_with_file(client: &ChatGPT, key: &str, engine: ChatGPTEngine, args: &String) -> chatgpt::Result<()> {
     let file_name = args
       .split_whitespace()
       .find(|arg| arg.starts_with("--file="))
@@ -238,7 +244,7 @@ async fn message_with_file(client: &ChatGPT, key: &str, args: &String) -> chatgp
         while let Some(chunk) = batched_chunks.first() {
             let key = key.clone();
             let result =
-                ai::process_chunks(key.to_string(), (*message.clone()).to_string(), chunk.to_vec()).await?;
+                ai::process_chunks(key.to_string(), engine, (*message.clone()).to_string(), chunk.to_vec()).await?;
 
             for (_index, result) in result.iter().enumerate() {
                 results.push(result.message().content.clone());
