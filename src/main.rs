@@ -58,7 +58,7 @@ async fn main() -> chatgpt::Result<()> {
             println!("  clear: clear all saved conversations");
             println!("  list: list all saved conversations");
             println!(
-                "  --file=[file] [message]: send a message related to a file that is also uploaded"
+                "  --file=[file] --batch [optional, disable streaming process file in batches] [message]: send a message related to a file that is also uploaded"
             );
             println!("  [message]: send a message");
             Ok(())
