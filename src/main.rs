@@ -12,7 +12,6 @@ mod file;
 
 const CHUNK_SIZE: usize = 20000;
 const CHUNK_BATCH_SIZE: usize = 5;
-const SHOULD_BATCH: bool = false;
 
 #[tokio::main]
 async fn main() -> chatgpt::Result<()> {
@@ -167,6 +166,10 @@ async fn message_with_file(client: &ChatGPT, key: &str, args: &String) -> chatgp
       .map(|arg| arg.trim_start_matches("--file=").to_owned())
       .unwrap();
 
+    // if --batch is set, don't stream the output, and process the file in batches
+    let should_batch = args.contains("--batch");
+    let args = args.replace("--batch", "");
+
     let input = args;
     let message = match input.find(' ') {
         Some(index) => &input[(index + 1)..],
@@ -222,7 +225,7 @@ async fn message_with_file(client: &ChatGPT, key: &str, args: &String) -> chatgp
     }
 
 
-    if SHOULD_BATCH {
+    if should_batch {
          // split chunks into a nested array of 5 chunk batches
         let mut batched_chunks: Vec<Vec<String>> = chunks
             .chunks(CHUNK_BATCH_SIZE)
