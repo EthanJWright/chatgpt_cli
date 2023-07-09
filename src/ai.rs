@@ -8,7 +8,6 @@ use super::client;
 
 
 pub async fn process_chunks(key: String, prompt: String, chunks: Vec<String>) -> ChatGptResult<Vec<CompletionResponse>> {
-    println!("Processing {} chunks", chunks.len());
     let tasks = chunks.into_iter().map(|chunk| {
         let prompt = prompt.clone();
         let key = key.clone();
