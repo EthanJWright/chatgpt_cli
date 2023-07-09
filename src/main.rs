@@ -12,11 +12,12 @@ mod file;
 
 const CHUNK_SIZE: usize = 20000;
 const CHUNK_BATCH_SIZE: usize = 1;
+const SHOULD_BATCH: bool = false;
 
 #[tokio::main]
 async fn main() -> chatgpt::Result<()> {
     // Get the API key from the command line
-    let key = std::env::args().nth(1).expect("API key not provided");
+    let mut key = std::env::args().nth(1).expect("API key not provided");
     let client_key = key.clone();
     let client = client::get_client(client_key).await;
 
@@ -75,7 +76,8 @@ async fn main() -> chatgpt::Result<()> {
         }
         _ => {
             if input.contains("--file=") {
-                return message_with_file(key, &input).await;
+                key = key.clone();
+                return message_with_file(&client, &key, &input).await;
             }
 
             let saved = get_saved_conversations();
@@ -158,7 +160,7 @@ fn percent_left(current_chunk: &str, chunk_size: usize) -> usize {
     (remaining_size as f64 / chunk_size as f64 * 100.0) as usize
 }
 
-async fn message_with_file(key: String, args: &String) -> chatgpt::Result<()> {
+async fn message_with_file(client: &ChatGPT, key: &str, args: &String) -> chatgpt::Result<()> {
     let file_name = args
       .split_whitespace()
       .find(|arg| arg.starts_with("--file="))
@@ -219,28 +221,36 @@ async fn message_with_file(key: String, args: &String) -> chatgpt::Result<()> {
         chunks.push(current_chunk);
     }
 
-    // split chunks into a nested array of 5 chunk batches
-    let mut batched_chunks: Vec<Vec<String>> = chunks
-        .chunks(CHUNK_BATCH_SIZE)
-        .map(|chunk| chunk.to_vec())
-        .collect();
 
-    let mut results: Vec<String> = Vec::new();
+    if SHOULD_BATCH {
+         // split chunks into a nested array of 5 chunk batches
+        let mut batched_chunks: Vec<Vec<String>> = chunks
+            .chunks(CHUNK_BATCH_SIZE)
+            .map(|chunk| chunk.to_vec())
+            .collect();
 
-    // Send each chunk in batched_chunks to the AI in sequence
-    while let Some(chunk) = batched_chunks.first() {
-        let key = key.clone();
-        let result =
-            ai::process_chunks(key, (*message.clone()).to_string(), chunk.to_vec()).await?;
+        let mut results: Vec<String> = Vec::new();
 
-        for (_index, result) in result.iter().enumerate() {
-            results.push(result.message().content.clone());
+        // Send each chunk in batched_chunks to the AI in sequence
+        while let Some(chunk) = batched_chunks.first() {
+            let key = key.clone();
+            let result =
+                ai::process_chunks(key.to_string(), (*message.clone()).to_string(), chunk.to_vec()).await?;
+
+            for (_index, result) in result.iter().enumerate() {
+                results.push(result.message().content.clone());
+            }
+
+            batched_chunks.remove(0);
         }
-
-        batched_chunks.remove(0);
+        println!("{}", results.join("\n"));
+    } else {
+        chunks.reverse();
+        while let Some(chunk) = chunks.pop() {
+            let formatted = format!("{}\n\n{}", message, chunk);
+            client::process_message(client, &formatted).await?;
+        }
     }
-
-    println!("{}", results.join("\n"));
 
     Ok(())
 }
