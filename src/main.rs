@@ -11,7 +11,7 @@ mod client;
 mod file;
 
 const CHUNK_SIZE: usize = 20000;
-const CHUNK_BATCH_SIZE: usize = 1;
+const CHUNK_BATCH_SIZE: usize = 5;
 const SHOULD_BATCH: bool = false;
 
 #[tokio::main]
