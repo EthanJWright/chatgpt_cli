@@ -48,13 +48,19 @@ You can also pass your prompt directly after the api key
     ./target/release/chatgpt_cli your_api_key write a haiku
 
 You can interact with ChatGPT by typing messages directly in the CLI. The following commands are also available:
+- `help`: Displays help message
+- `flush`: Clears the current conversation
+- `save [name]`: Saves the current conversation under the specified name
+- `remove [name]`: Removes a saved conversation
+- `load [name]`: Loads a saved conversation
+- `clear`: Clears all saved conversations
+- `list`: Lists all saved conversations
+- `--file=[file] --batch [optional, disable streaming process file in batches] [message]`: Sends a message related to a file that is also uploaded
+- `[message]`: Sends a message
 
-*   `flush`: Clears the current conversation.
-*   `save`: Saves the current conversation to a JSON file. You'll be prompted for a file name.
-*   `remove`: Remove a conversation from the saved list.
-*   `load`: Loads a saved conversation from a JSON file. You'll be prompted for a file name.
-*   `list`: List all saved conversations.
-*   `clear`: Removes all saved conversations.
+Flags:
+- `--gpt4`: Use this flag to enable GPT-4 model
+- `--gpt35`: Use this flag to enable GPT-3.5 model
 
 License
 -------

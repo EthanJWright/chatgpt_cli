@@ -1,4 +1,5 @@
 use chatgpt::Result as ChatGptResult;
+use chatgpt::prelude::ChatGPTEngine;
 use chatgpt::types::CompletionResponse;
 use futures::future::{try_join_all, TryFutureExt};
 use tokio::task::spawn;
@@ -6,11 +7,11 @@ use tokio::task::spawn;
 use super::file;
 use super::client;
 
-pub async fn process_chunks(key: String, prompt: String, chunks: Vec<String>) -> ChatGptResult<Vec<CompletionResponse>> {
+pub async fn process_chunks(key: String, engine: ChatGPTEngine, prompt: String, chunks: Vec<String>) -> ChatGptResult<Vec<CompletionResponse>> {
     let tasks = chunks.into_iter().map(|chunk| {
         let prompt = prompt.clone();
         let key = key.clone();
-        spawn(async move { handle_chunk(key, chunk, prompt).await })
+        spawn(async move { handle_chunk(key, engine, chunk, prompt).await })
     });
 
 
@@ -36,8 +37,8 @@ pub async fn process_chunks(key: String, prompt: String, chunks: Vec<String>) ->
     Ok(unwrapped_responses)
 }
 
-async fn handle_chunk(key: String, chunk: String, prompt: String) -> ChatGptResult<CompletionResponse> {
-    let client = client::get_client(key).await;
+async fn handle_chunk(key: String, engine: ChatGPTEngine, chunk: String, prompt: String) -> ChatGptResult<CompletionResponse> {
+    let client = client::get_client(key, engine).await;
     let mut conversation = if std::path::Path::new(&file::main_conversation_file()).exists() {
         client.restore_conversation_json(file::main_conversation_file()).await?
     } else {
