@@ -6,7 +6,6 @@ use std::fs::File;
 use std::io::{stdin, stdout, Write};
 use std::io::{BufRead, BufReader};
 
-
 mod ai;
 mod client;
 mod file;
@@ -76,7 +75,7 @@ async fn main() -> chatgpt::Result<()> {
         }
         _ => {
             if input.contains("--file=") {
-                return message_with_file(key, &[input]).await;
+                return message_with_file(key, &input).await;
             }
 
             let saved = get_saved_conversations();
@@ -159,21 +158,18 @@ fn percent_left(current_chunk: &str, chunk_size: usize) -> usize {
     (remaining_size as f64 / chunk_size as f64 * 100.0) as usize
 }
 
-async fn message_with_file(key: String, args: &[String]) -> chatgpt::Result<()> {
+async fn message_with_file(key: String, args: &String) -> chatgpt::Result<()> {
     let file_name = args
-        .iter()
-        .find(|arg| arg.starts_with("--file="))
-        .map(|arg| arg.split_whitespace().nth(0))
-        .flatten()
-        .map(|arg| arg.trim_start_matches("--file=").to_owned())
-        .unwrap();
+      .split_whitespace()
+      .find(|arg| arg.starts_with("--file="))
+      .map(|arg| arg.trim_start_matches("--file=").to_owned())
+      .unwrap();
 
-    let message = args
-        .iter()
-        .filter(|arg| !arg.starts_with("--file="))
-        .cloned()
-        .collect::<Vec<String>>()
-        .join(" ");
+    let input = args;
+    let message = match input.find(' ') {
+        Some(index) => &input[(index + 1)..],
+        None => "",
+    };
 
     let expanded_file_name = shellexpand::tilde(&file_name).to_string();
     let absolute_file_path = canonicalize(&expanded_file_name)?;
@@ -234,7 +230,8 @@ async fn message_with_file(key: String, args: &[String]) -> chatgpt::Result<()> 
     // Send each chunk in batched_chunks to the AI in sequence
     while let Some(chunk) = batched_chunks.first() {
         let key = key.clone();
-        let result = ai::process_chunks(key, message.clone(), chunk.to_vec()).await?;
+        let result =
+            ai::process_chunks(key, (*message.clone()).to_string(), chunk.to_vec()).await?;
 
         for (_index, result) in result.iter().enumerate() {
             results.push(result.message().content.clone());
