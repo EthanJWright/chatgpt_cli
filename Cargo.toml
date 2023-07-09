@@ -5,8 +5,9 @@ edition = "2018"
 
 [dependencies]
 tokio = { version = "1.15", features = ["full"] }
-chatgpt_rs = { version = "1.1.1", features = [] }
+chatgpt_rs = { version = "1.1.11", features = ["streams"] }
 dirs = "3.0.2"
+futures-util = "0.3"
 futures = "0.3"
 shellexpand = "1.0"
 

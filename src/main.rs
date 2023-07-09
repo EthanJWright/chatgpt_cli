@@ -1,18 +1,18 @@
 use chatgpt::prelude::*;
 extern crate shellexpand;
+use std::env::args;
 use std::fs::canonicalize;
 use std::fs::File;
-use std::env::args;
 use std::io::{stdin, stdout, Write};
 use std::io::{BufRead, BufReader};
 
+
 mod ai;
-mod file;
 mod client;
+mod file;
 
 const CHUNK_SIZE: usize = 20000;
 const CHUNK_BATCH_SIZE: usize = 1;
-
 
 #[tokio::main]
 async fn main() -> chatgpt::Result<()> {
@@ -83,7 +83,7 @@ async fn main() -> chatgpt::Result<()> {
             if saved.contains(&input.trim().to_string()) {
                 load_conversation(&client, &[input.trim().to_string()]).await
             } else {
-                process_message(&client, input.trim()).await
+                client::process_message(&client, input.trim()).await
             }
         }
     }
@@ -272,27 +272,6 @@ fn clear_conversations() -> chatgpt::Result<()> {
             std::fs::remove_file(conversation.path())?;
         }
     }
-
-    Ok(())
-}
-
-async fn process_message(client: &ChatGPT, message: &str) -> chatgpt::Result<()> {
-    let mut conversation = if std::path::Path::new(&file::main_conversation_file()).exists() {
-        client
-            .restore_conversation_json(file::main_conversation_file())
-            .await?
-    } else {
-        client.new_conversation()
-    };
-
-    let response = conversation.send_message(message.to_string()).await?;
-
-    // Print two new lines to separate the conversation
-    println!("\n\n{}", response.message().content);
-
-    conversation
-        .save_history_json(file::main_conversation_file())
-        .await?;
 
     Ok(())
 }
