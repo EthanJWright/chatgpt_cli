@@ -1,7 +1,6 @@
 use chatgpt::prelude::*;
 extern crate shellexpand;
 use std::env::args;
-use std::fs::canonicalize;
 use std::fs::File;
 use std::io::{stdin, stdout, Write};
 use std::io::{BufRead, BufReader};
@@ -78,7 +77,7 @@ async fn main() -> chatgpt::Result<()> {
             println!("  clear: clear all saved conversations");
             println!("  list: list all saved conversations");
             println!(
-                "  --file=[file] --batch [optional, disable streaming process file in batches] [message]: send a message related to a file that is also uploaded"
+                "  --file=[file(s)] --batch [optional, disable streaming process file(s) in batches] [message]: send a message related to a file that is also uploaded"
             );
             println!("  [message]: send a message");
             Ok(())
@@ -179,39 +178,16 @@ fn percent_left(current_chunk: &str, chunk_size: usize) -> usize {
     (remaining_size as f64 / chunk_size as f64 * 100.0) as usize
 }
 
-async fn message_with_file(
-    client: &ChatGPT,
-    key: &str,
-    engine: ChatGPTEngine,
-    args: &String,
-) -> chatgpt::Result<()> {
-    let file_name = args
-        .split_whitespace()
-        .find(|arg| arg.starts_with("--file="))
-        .map(|arg| arg.trim_start_matches("--file=").to_owned())
-        .unwrap();
-
-    // if --batch is set, don't stream the output, and process the file in batches
-    let should_batch = args.contains("--batch");
-    let args = args.replace("--batch", "");
-
-    let input = args;
-    let message = match input.find(' ') {
-        Some(index) => &input[(index + 1)..],
-        None => "",
-    };
-
-    let expanded_file_name = shellexpand::tilde(&file_name).to_string();
-    let absolute_file_path = canonicalize(&expanded_file_name)?;
-    let file = File::open(absolute_file_path)?;
-
-    // Read the file line by line
+fn process_file_chunks(file_name: String) -> Vec<String> {
+    let untilde = shellexpand::tilde(&file_name);
+    let untilde = untilde.as_ref();
+    let file = File::open(untilde).unwrap();
     let reader = BufReader::new(file);
     let mut chunks: Vec<String> = Vec::new();
     let mut current_chunk = String::new();
     let mut current_size = 0;
-
     let mut is_previous_line_empty = false;
+
     for line in reader.lines() {
         let line = match line {
             Ok(line) => line,
@@ -248,6 +224,62 @@ async fn message_with_file(
     if !current_chunk.is_empty() {
         chunks.push(current_chunk);
     }
+
+    chunks
+}
+
+async fn message_with_file(
+    client: &ChatGPT,
+    key: &str,
+    engine: ChatGPTEngine,
+    args: &String,
+) -> chatgpt::Result<()> {
+    let file_name = args
+        .split_whitespace()
+        .find(|arg| arg.starts_with("--file="))
+        .map(|arg| arg.trim_start_matches("--file=").to_owned())
+        .unwrap();
+
+    // if --batch is set, don't stream the output, and process the file in batches
+    let should_batch = args.contains("--batch");
+    let args = args.replace("--batch", "");
+
+    let input = args;
+    let message = match input.find(' ') {
+        Some(index) => &input[(index + 1)..],
+        None => "",
+    };
+
+    // if file_name contains a comma, split it into multiple files
+    let file_names: Vec<&str> = file_name.split(',').collect();
+
+    let mut all_files_chunked: Vec<Vec<String>> = Vec::new();
+
+    for file_name in file_names {
+        let chunked_file = process_file_chunks(file_name.to_string());
+        all_files_chunked.push(chunked_file);
+    }
+
+    // if there are multiple files, add "File: <file name>" to the beginning of each chunk
+    let mut chunks: Vec<String> = Vec::new();
+    if all_files_chunked.len() > 1 {
+        for (index, file_chunks) in all_files_chunked.iter().enumerate() {
+            for chunk in file_chunks {
+                // if the last chunk + this chunk is < CHUNK_SIZE, add it to the last chunk
+                let chunk = format!("File {}: {}", index + 1, chunk);
+                if !chunks.is_empty() && chunks.last().unwrap().len() + chunk.len() < CHUNK_SIZE {
+                    let last_chunk = chunks.last_mut().unwrap();
+                    last_chunk.push_str(&chunk);
+                    continue;
+                } else {
+                    chunks.push(chunk);
+                }
+            }
+        }
+    } else {
+        chunks = all_files_chunked[0].clone();
+    }
+
 
     if should_batch {
         // split chunks into a nested array of 5 chunk batches
