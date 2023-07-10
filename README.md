@@ -9,6 +9,7 @@ Features
 *   Send messages and receive responses from ChatGPT in a conversational manner.
 *   Save, load, and manage conversation history.
 *   Supports various commands for managing conversations, such as `flush`, `save`, `load`, and `clear`.
+*   Ask GPT to work with files via the CLI
 
 Requirements
 ------------
@@ -55,7 +56,7 @@ You can interact with ChatGPT by typing messages directly in the CLI. The follow
 - `load [name]`: Loads a saved conversation
 - `clear`: Clears all saved conversations
 - `list`: Lists all saved conversations
-- `--file=[file] --batch [optional, disable streaming process file in batches] [message]`: Sends a message related to a file that is also uploaded
+- `--file=[file(s)] --batch [optional, disable streaming process file(s) in batches] [message]`: Sends a message related to a file that is also uploaded
 - `[message]`: Sends a message
 
 Flags:
