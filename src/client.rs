@@ -54,8 +54,8 @@ pub async fn process_message(client: &ChatGPT, message: &str) -> chatgpt::Result
 
     // Parsing ChatMessage from the response chunks and saving it to the conversation history
     let messages = ChatMessage::from_response_chunks(output);
-    conversation.history.extend(messages);
-    // conversation.history.push(messages[0].to_owned());
+    conversation.history.extend(messages.clone());
+    conversation.history.push(messages[0].to_owned());
 
     conversation
         .save_history_json(file::main_conversation_file())
