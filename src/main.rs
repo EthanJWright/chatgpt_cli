@@ -302,7 +302,7 @@ async fn message_with_file(
             )
             .await?;
 
-            for (result) in result.iter() {
+            for result in result.iter() {
                 results.push(result.message().content.clone());
             }
 
