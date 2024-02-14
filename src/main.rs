@@ -35,13 +35,15 @@ async fn main() -> chatgpt::Result<()> {
         args_vec.retain(|x| x != "--gpt35");
     }
 
+    // let client = client::get_client(client_key, engine).await;
+
     let client = ChatGPT::new(client_key)?;
 
     std::fs::create_dir_all(file::conversations_dir().unwrap())?;
 
 
     // If there are any arguments, use them as the message
-    let message = if args_vec.len() > 0 {
+    let message = if !args_vec.is_empty() {
         Some(args_vec.join(" "))
     } else {
         None
@@ -59,7 +61,7 @@ async fn main() -> chatgpt::Result<()> {
         input
     };
 
-    let first_command = input.trim().split_whitespace().next().unwrap();
+    let first_command = input.split_whitespace().next().unwrap();
     // remove the potential command from the arguments
     // in process_message we will just use the raw input
     let args_vec: Vec<String> = args_vec.into_iter().skip(1).collect();
@@ -109,7 +111,7 @@ async fn main() -> chatgpt::Result<()> {
 }
 
 async fn save_conversation(client: &ChatGPT, args: &[String]) -> chatgpt::Result<()> {
-    let file_name = if let Some(name) = args.get(0) {
+    let file_name = if let Some(name) = args.first() {
         println!("Saving conversation as {}", name);
         file::conversation_file_path(name).unwrap()
     } else {
@@ -130,7 +132,7 @@ async fn save_conversation(client: &ChatGPT, args: &[String]) -> chatgpt::Result
 }
 
 async fn remove_conversation(args: &[String]) -> chatgpt::Result<()> {
-    let file_name = if let Some(name) = args.get(0) {
+    let file_name = if let Some(name) = args.first() {
         println!("Removing conversation {}", name);
         file::conversation_file_path(name).unwrap()
     } else {
@@ -148,7 +150,7 @@ async fn remove_conversation(args: &[String]) -> chatgpt::Result<()> {
 }
 
 async fn load_conversation(client: &ChatGPT, args: &[String]) -> chatgpt::Result<()> {
-    let file_name = if let Some(name) = args.get(0) {
+    let file_name = if let Some(name) = args.first() {
         println!("Loading conversation from {}", name);
         file::conversation_file_path(name).unwrap()
     } else {
@@ -232,7 +234,7 @@ async fn message_with_file(
     client: &ChatGPT,
     key: &str,
     engine: ChatGPTEngine,
-    args: &String,
+    args: &str,
 ) -> chatgpt::Result<()> {
     let file_name = args
         .split_whitespace()
@@ -292,16 +294,15 @@ async fn message_with_file(
 
         // Send each chunk in batched_chunks to the AI in sequence
         while let Some(chunk) = batched_chunks.first() {
-            let key = key.clone();
             let result = ai::process_chunks(
                 key.to_string(),
                 engine,
-                (*message.clone()).to_string(),
+                (*message).to_string(),
                 chunk.to_vec(),
             )
             .await?;
 
-            for (_index, result) in result.iter().enumerate() {
+            for result in result.iter() {
                 results.push(result.message().content.clone());
             }
 
