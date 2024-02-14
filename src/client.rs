@@ -2,9 +2,6 @@ use chatgpt::prelude::*;
 use super::file;
 use std::io::{stdout, Write};
 use futures_util::StreamExt;
-use chatgpt::types::{CompletionResponse};
-
-// Publicly setable ChatGPTEngine
 
 pub async fn get_client(key: String, engine: ChatGPTEngine) -> ChatGPT {
     let config = ModelConfigurationBuilder::default()
@@ -12,11 +9,10 @@ pub async fn get_client(key: String, engine: ChatGPTEngine) -> ChatGPT {
         .build()
         .unwrap();
 
-    let client = match ChatGPT::new_with_config(&key, config) {
+    match ChatGPT::new_with_config(key, config) {
         Ok(val) => val,
         Err(err) => panic!("Failed to create ChatGPT client: {}", err),
-    };
-    return client;
+    }
 }
 
 pub async fn process_message(client: &ChatGPT, message: &str) -> chatgpt::Result<()> {

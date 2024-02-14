@@ -9,7 +9,7 @@ pub fn get_data_dir(app_name: &str) -> Option<PathBuf> {
 }
 
 pub fn conversations_dir() -> Option<PathBuf> {
-    return get_data_dir(APP_NAME);
+    get_data_dir(APP_NAME)
 }
 
 pub fn main_conversation_file() -> String {
@@ -18,5 +18,5 @@ pub fn main_conversation_file() -> String {
 
 pub fn conversation_file_path(name: &str) -> Option<PathBuf> {
     let conversions_dir = conversations_dir()?;
-    Some(PathBuf::from(conversions_dir).join(format!("conversation_{}.json", name)))
+    Some(conversions_dir.join(format!("conversation_{}.json", name)))
 }
