@@ -35,7 +35,9 @@ async fn main() -> chatgpt::Result<()> {
         args_vec.retain(|x| x != "--gpt35");
     }
 
-    let client = client::get_client(client_key, engine).await;
+    // let client = client::get_client(client_key, engine).await;
+
+    let client = ChatGPT::new(client_key)?;
 
     std::fs::create_dir_all(file::conversations_dir().unwrap())?;
 
